@@ -8,6 +8,8 @@ from werkzeug.wsgi import SharedDataMiddleware
 from werkzeug.utils import redirect
 from jinja2 import Environment, FileSystemLoader
 from views import Views
+from settings import *
+from database import DBClient
 
 
 def is_valid_url(url):
@@ -29,7 +31,10 @@ def base36_encode(number):
 class Ads(object):
 
     def __init__(self, config):
-        self.redis = redis.Redis(config['db_host'], config['db_port'])
+        self.db_client = DBClient(host=config['db_host'], port=config['db_port'])
+        self.db_client.register_table('ads')
+        self.db_client.select_table('ads')
+
         template_path = os.path.join(os.path.dirname(__file__), 'templates')
         self.jinja_env = Environment(loader=FileSystemLoader(template_path),
                                      autoescape=True)
@@ -63,6 +68,7 @@ class Ads(object):
             return e
 
     def on_new_url(self, request):
+        return
         error = None
         url = ''
         if request.method == 'POST':
@@ -75,27 +81,30 @@ class Ads(object):
         return self.render_template('new_url.html', error=error, url=url)
 
     def insert_url(self, url):
-        short_id = self.redis.get('reverse-url:' + url)
+        return
+        short_id = self.db_client.get('reverse-url:' + url)
         if short_id is not None:
             return short_id
-        url_num = self.redis.incr('last-url-id')
+        url_num = self.db_client.incr('last-url-id')
         short_id = base36_encode(url_num)
-        self.redis.set('url-target:' + short_id, url)
-        self.redis.set('reverse-url:' + url, short_id)
+        self.db_client.set('url-target:' + short_id, url)
+        self.db_client.set('reverse-url:' + url, short_id)
         return short_id
 
     def on_follow_short_link(self, request, short_id):
-        link_target = self.redis.get('url-target:' + short_id)
+        return
+        link_target = self.db_client.get('url-target:' + short_id)
         if link_target is None:
             raise NotFound()
-        self.redis.incr('click-count:' + short_id)
+        self.db_client.incr('click-count:' + short_id)
         return redirect(link_target)
 
     def on_short_link_details(self, request, short_id):
-        link_target = self.redis.get('url-target:' + short_id)
+        return
+        link_target = self.db_client.get('url-target:' + short_id)
         if link_target is None:
             raise NotFound()
-        click_count = int(self.redis.get('click-count:' + short_id) or 0)
+        click_count = int(self.db_client.get('click-count:' + short_id) or 0)
         return self.render_template('short_link_details.html',
                                     link_target=link_target,
                                     short_id=short_id,
@@ -103,11 +112,12 @@ class Ads(object):
                                     )
 
 
-def create_app(redis_host='localhost', redis_port=6379, with_static=True):
+def create_app(with_static=True):
     app = Ads({
-        'db_host':       redis_host,
-        'db_port':       redis_port
+        'db_host': DB_HOST,
+        'db_port': DB_PORT,
     })
+
     if with_static:
         app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
             '/static':  os.path.join(os.path.dirname(__file__), 'static')
@@ -118,4 +128,4 @@ def create_app(redis_host='localhost', redis_port=6379, with_static=True):
 if __name__ == '__main__':
     from werkzeug.serving import run_simple
     app = create_app()
-    run_simple('127.0.0.1', 5000, app, use_debugger=True, use_reloader=True)
+    run_simple(APP_HOST, APP_PORT, app, use_debugger=True, use_reloader=True)

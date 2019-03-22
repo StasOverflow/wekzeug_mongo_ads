@@ -1,12 +1,38 @@
 {% extends "layout.html" %}
 {% block body %}
-  <h2>Submit URL</h2>
-  <form action="" method=post>
     {% if error %}
       <p class=error><strong>Error:</strong> {{ error }}
     {% endif %}
-    <p>URL:
-      <input type=text name=url value="{{ url }}" class=urlinput>
-      <input type=submit value="Shorten">
-  </form>
+    {% for ad in ads %}
+
+    {% for announcement in announcements %}
+        <div class="item-detail">
+                <div class="item-header">
+                    {% if announcement['title'] %}
+                        <div class="item-title">{{ announcement["title"] }}</div>
+                    {% else %}
+                        <div class="item-title">Без имени</div>
+                    {% endif %}
+                    <div class="item-content">{{  announcement["announcement"]  }}</div>
+                    <span class="item-created_at">Добавлено: {{  announcement["created_at"].strftime('%d.%m.%Y') }}</span>
+                </div>
+        </div>
+    {% endfor %}
+      <hr>
+        <div>
+          <div>
+            <h2>
+              ><a href="ad/{{ad._id}}/">{{ ad['title'] }}</a>
+            </h2>
+          </div>
+          <div>
+            <span>{{ ad['description'] }}</span>
+          </div>
+          <div>
+            {{ ad['created_on'] }}
+          </div>
+        </div>
+      <hr>
+      <br>
+    {% endfor %}
 {% endblock %}
