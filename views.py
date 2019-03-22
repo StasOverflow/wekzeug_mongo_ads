@@ -27,7 +27,7 @@ class Views:
 
     def on_ad_detail_view(self, request, ad_id):
         if request.method == 'GET':
-            pass
-        return self.app_renderer('detail_ad.html')
+            ad = self.app_db.get(value=ad_id)
+            return self.app_renderer('detail_ad.html', title=ad['title'], ad=ad)
 
 

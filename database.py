@@ -1,5 +1,6 @@
 import pymongo
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 
 class _Singleton(type):
@@ -30,8 +31,17 @@ class DBClient(metaclass=_Singleton):
         except Exception as e:
             print(e)
 
-    def get(self, parameter, value, table_name=None):
-        pass
+    def get(self, parameter='_id', value=None, table_name=None):
+        if table_name is None:
+            table = self.tables[self.current_table]
+        else:
+            try:
+                table = self.tables[table_name]
+            except Exception as e:
+                print(e)
+                raise
+        ad = table.find_one({parameter: ObjectId(value)})
+        return ad
 
     def insert(self, new_object, table_name=None):
         if table_name is None:

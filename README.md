@@ -10,6 +10,10 @@ $ https://docs.mongodb.com/manual/tutorial/install-mongodb-enterprise-on-ubuntu/
 or
     $ mongod
 ~~~
+- Run the app:
+~~~
+$ python app.py
+~~~
 
     
     
