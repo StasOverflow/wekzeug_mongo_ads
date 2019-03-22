@@ -7,6 +7,7 @@ from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.wsgi import SharedDataMiddleware
 from werkzeug.utils import redirect
 from jinja2 import Environment, FileSystemLoader
+from views import Views
 
 
 def is_valid_url(url):
@@ -28,15 +29,17 @@ def base36_encode(number):
 class Ads(object):
 
     def __init__(self, config):
-        self.redis = redis.Redis(config['redis_host'], config['redis_port'])
+        self.redis = redis.Redis(config['db_host'], config['db_port'])
         template_path = os.path.join(os.path.dirname(__file__), 'templates')
         self.jinja_env = Environment(loader=FileSystemLoader(template_path),
                                      autoescape=True)
 
+        self.views = Views(app_renderer=self.render_template)
+
         self.url_map = Map([
-            Rule('/', endpoint='new_url'),
-            Rule('/<short_id>', endpoint='follow_short_link'),
-            Rule('/<short_id>+', endpoint='short_link_details')
+            Rule('/', endpoint='ad_list_view'),
+            Rule('/ad/<ad_id>/', endpoint='ad_detail_view'),
+            Rule('/ad/create/', endpoint='ad_create_view'),
         ])
 
     def render_template(self, template_name, **context):
@@ -55,7 +58,7 @@ class Ads(object):
         adapter = self.url_map.bind_to_environ(request.environ)
         try:
             endpoint, values = adapter.match()
-            return getattr(self, 'on_' + endpoint)(request, **values)
+            return getattr(self.views, 'on_' + endpoint)(request, **values)
         except HTTPException as e:
             return e
 
@@ -100,12 +103,10 @@ class Ads(object):
                                     )
 
 
-
-
 def create_app(redis_host='localhost', redis_port=6379, with_static=True):
     app = Ads({
-        'redis_host':       redis_host,
-        'redis_port':       redis_port
+        'db_host':       redis_host,
+        'db_port':       redis_port
     })
     if with_static:
         app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
