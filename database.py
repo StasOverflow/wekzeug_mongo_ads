@@ -66,4 +66,4 @@ class DBClient(metaclass=_Singleton):
         return table.find()
 
     def get_ordered_all(self, table_name=None):
-        pass
+        return self.get_all().sort([("created_on", pymongo.DESCENDING)])
